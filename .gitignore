@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+*.dist
+*.log
+*.sqlite3
+
+# Docker
+docker-compose.override.yml
+.docker
+
+# Secrets / env files
+.env
+secrets/*.pem
