@@ -1,0 +1,68 @@
+# --------------------------------------------------------------
+# docker-compose.yml
+# --------------------------------------------------------------
+version: "3.9"
+
+services:
+  # ----------------------------------------------------------
+  # Open‑WebUI (LLM UI + tool runner)
+  # ----------------------------------------------------------
+  openwebui:
+    build:
+      context: ./docker/openwebui
+    container_name: openwebui
+    ports:
+      - "8080:8080"          # UI
+    environment:
+      # ---- Open‑WebUI specific env vars (see docs) ----
+      # You can set a model, e.g. `OLLAMA_MODEL=llama3:8b`
+      OLLAMA_HOST: http://host.docker.internal:11434   # if you use Ollama locally
+      # Enable tool execution (required for our fetch_projects tool)
+      ENABLE_TOOLS: "true"
+    depends_on:
+      - mock_gaits
+      - auth_proxy
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # Mock GAITS – provides /projects and /projects/delta
+  # ----------------------------------------------------------
+  mock_gaits:
+    build:
+      context: ./docker/mock_gaits
+    container_name: mock_gaits
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./data:/data:ro    # mount the sample master.xlsx read‑only
+    environment:
+      # (optional) you could set API_KEY env var here
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # Auth Proxy – tiny service that pretends to be SSO
+  # ----------------------------------------------------------
+  auth_proxy:
+    build:
+      context: ./docker/auth_proxy
+    container_name: auth_proxy
+    ports:
+      - "8002:8000"
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # (Optional) PostgreSQL – you can switch to it later
+  # ----------------------------------------------------------
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: postgres
+  #   environment:
+  #     POSTGRES_USER: gaits_user
+  #     POSTGRES_PASSWORD: secret
+  #     POSTGRES_DB: gaits
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+volumes:
+  # pgdata:
