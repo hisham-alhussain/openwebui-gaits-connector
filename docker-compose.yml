@@ -5,53 +5,52 @@ version: "3.9"
 
 services:
   # ----------------------------------------------------------
-  # Open‑WebUI (LLM UI + tool runner)
+  # Open‑WebUI – the LLM UI + tool runner
   # ----------------------------------------------------------
   openwebui:
     build:
       context: ./docker/openwebui
     container_name: openwebui
     ports:
-      - "8080:8080"          # UI
+      - "8080:8080"            # UI reachable at http://localhost:8080
     environment:
-      # ---- Open‑WebUI specific env vars (see docs) ----
-      # You can set a model, e.g. `OLLAMA_MODEL=llama3:8b`
-      OLLAMA_HOST: http://host.docker.internal:11434   # if you use Ollama locally
-      # Enable tool execution (required for our fetch_projects tool)
-      ENABLE_TOOLS: "true"
+      # OPTIONAL – if you run a local Ollama instance for the model
+      # OLLAMA_HOST: http://host.docker.internal:11434
+      ENABLE_TOOLS: "true"    # required so the LLM can call custom tools
     depends_on:
       - mock_gaits
       - auth_proxy
     restart: unless-stopped
 
   # ----------------------------------------------------------
-  # Mock GAITS – provides /projects and /projects/delta
+  # Mock GAITS – mimics the real GAITS REST API
   # ----------------------------------------------------------
   mock_gaits:
     build:
       context: ./docker/mock_gaits
     container_name: mock_gaits
     ports:
-      - "8001:8000"
+      - "8001:8000"            # host 8001 → container 8000
     volumes:
-      - ./data:/data:ro    # mount the sample master.xlsx read‑only
-    environment:
-      # (optional) you could set API_KEY env var here
+      - ./data:/data:ro        # mount the sample Excel file read‑only
+    # No environment variables needed now → give an empty mapping
+    environment: {}            # <-- this line satisfies the “must be a mapping” rule
     restart: unless-stopped
 
   # ----------------------------------------------------------
-  # Auth Proxy – tiny service that pretends to be SSO
+  # Auth Proxy – tiny service that pretends to be SSO / role service
   # ----------------------------------------------------------
   auth_proxy:
     build:
       context: ./docker/auth_proxy
     container_name: auth_proxy
     ports:
-      - "8002:8000"
+      - "8002:8000"            # host 8002 → container 8000
     restart: unless-stopped
 
   # ----------------------------------------------------------
-  # (Optional) PostgreSQL – you can switch to it later
+  # (Optional) PostgreSQL – you can enable it later if you want a
+  # persistent store instead of SQLite.
   # ----------------------------------------------------------
   # postgres:
   #   image: postgres:15-alpine
@@ -64,5 +63,8 @@ services:
   #     - pgdata:/var/lib/postgresql/data
   #   restart: unless-stopped
 
-volumes:
-  # pgdata:
+# ----------------------------------------------------------------
+# Volumes (only needed if you enable the postgres service)
+# ----------------------------------------------------------------
+# volumes:
+#   pgdata:
