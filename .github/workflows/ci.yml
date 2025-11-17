@@ -1,0 +1,74 @@
+# --------------------------------------------------------------
+# .github/workflows/ci.yml
+# --------------------------------------------------------------
+name: CI – lint, type‑check, test (Python 3.11)
+
+on:
+  push:
+    branches: [main, dev, "feature/*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # ----------------------------------------------------------
+    # 1️⃣  Set up Python 3.11
+    # ----------------------------------------------------------
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ----------------------------------------------------------
+      # 2️⃣  Install dependencies (including dev tools)
+      # ----------------------------------------------------------
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # install ruff and mypy as "editable" so they are in $PATH
+          pip install ruff mypy pytest pytest-asyncio
+
+      # ----------------------------------------------------------
+      # 3️⃣  Lint with ruff (PEP‑8 + extra checks)
+      # ----------------------------------------------------------
+      - name: Lint (ruff)
+        run: |
+          ruff check .
+          ruff format --check .
+
+      # ----------------------------------------------------------
+      # 4️⃣  Static type‑checking with mypy
+      # ----------------------------------------------------------
+      - name: Type‑check (mypy)
+        run: |
+          mypy core tests --ignore-missing-imports --strict
+
+      # ----------------------------------------------------------
+      # 5️⃣  Run unit tests (pytest)
+      # ----------------------------------------------------------
+      - name: Test (pytest)
+        env:
+          # Example: you may need the mock GAITS URL during tests
+          GAITS_BASE_URL: http://localhost:8001
+          GAITS_API_KEY: MOCK_KEY
+        run: |
+          pytest -q --maxfail=5 --disable-warnings
+
+      # ----------------------------------------------------------
+      # 6️⃣  (Optional) Upload coverage to Codecov / GitHub
+      # ----------------------------------------------------------
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
